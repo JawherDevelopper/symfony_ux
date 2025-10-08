@@ -1,0 +1,21 @@
+stages:
+    - build
+    - deploy
+
+variables:
+    IMAGE_NAME: registry.gitlab.com/benayed.jawher/symfony_ux/symfony_ux-image
+    TAG: dev
+
+before_script:
+    - echo "$CI_JOB_TOKEN" | docker login -u gitlab-ci-token --password-stdin registry.gitlab.com
+
+build_image:
+    stage: build
+    image: docker:latest
+    services:
+        - docker:dind
+    script:
+        - docker build -t $IMAGE_NAME:$TAG .
+        - docker push $IMAGE_NAME:$TAG
+    only:
+        - master
