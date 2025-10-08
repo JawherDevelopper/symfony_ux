@@ -1,7 +1,42 @@
 stages:
-    - test
+    - build
+    - deploy
 
-test_job:
-    stage: test
+variables:
+    IMAGE_NAME: registry.gitlab.com/benayed.jawher/symfony_ux/symfony_ux-image
+    TAG: $CI_COMMIT_REF_NAME  # Chaque branche aura son tag
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_TLS_CERTDIR: ""
+
+before_script:
+    # Connexion au GitLab Container Registry
+    - echo "$CI_JOB_TOKEN" | docker login -u gitlab-ci-token --password-stdin registry.gitlab.com
+
+build_image:
+    stage: build
+    image: docker:latest
+    services:
+        - docker:dind
     script:
-        - echo "CI/CD fonctionne !"
+        - docker build -t $IMAGE_NAME:$TAG .
+        - docker push $IMAGE_NAME:$TAG
+    only:
+        - master
+        - dev
+
+deploy:
+    stage: deploy
+    image: docker/compose:latest
+    services:
+        - docker:dind
+    script:
+        # Copier le docker-compose.yml sur le serveur distant et lancer le déploiement
+        - apk add --no-cache openssh-client
+        - mkdir -p ~/.ssh
+        - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+        - chmod 600 ~/.ssh/id_rsa
+        - ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+        - scp docker-compose.yml $DEPLOY_USER@$DEPLOY_HOST:/home/$DEPLOY_USER/symfony_ux/
+        - ssh $DEPLOY_USER@$DEPLOY_HOST "cd /home/$DEPLOY_USER/symfony_ux && docker-compose pull && docker-compose up -d --remove-orphans"
+    only:
+        - master
