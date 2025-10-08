@@ -3,7 +3,7 @@ stages:
     - deploy
 
 variables:
-    IMAGE_NAME: registry.gitlab.com/benayed.jawher/symfony_ux/symfony_ux-image
+    IMAGE_NAME: registry.gitlab.com/benayed.jawher/symfony_ci/symfony_ci
     TAG: $CI_COMMIT_REF_NAME  # Chaque branche aura son tag
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_TLS_CERTDIR: ""
